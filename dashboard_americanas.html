@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radar de Tendências · Americanas S.A.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#13171F; --ink-soft:#3A424F; --muted:#727C8C; --faint:#9AA3B2;
+    --paper:#EDEFF2; --panel:#FFFFFF; --line:#DCE0E6; --line-soft:#E8EBEF;
+    --red:#E60012; --red-deep:#B3000E; --red-wash:#FCE7E9;
+    --pos:#15935A; --pos-wash:#E3F3EB;
+    --neg:#D11A2A; --neg-wash:#FBE6E8;
+    --neu:#8A93A2; --neu-wash:#ECEEF1;
+    --gold:#F2B705; --green:#1E7A46;
+    --r:14px;
+    --display:'Archivo',sans-serif; --body:'Inter',sans-serif; --mono:'IBM Plex Mono',monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+
+  /* ---------- HEADER ---------- */
+  header{background:var(--ink);color:#fff;border-bottom:4px solid var(--red)}
+  .head-inner{padding:30px 20px 26px;max-width:1080px;margin:0 auto}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--red);font-weight:600}
+  h1{font-family:var(--display);font-weight:900;font-size:clamp(30px,6vw,52px);line-height:.98;letter-spacing:-.02em;margin:10px 0 4px}
+  h1 .sub{display:block;font-size:clamp(15px,2.6vw,22px);font-weight:700;color:#C6CCD6;letter-spacing:0}
+  .meta-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+  .chip{font-family:var(--mono);font-size:11px;letter-spacing:.04em;padding:5px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.2);color:#D6DBE3;white-space:nowrap}
+  .chip b{color:#fff;font-weight:600}
+  .chip.alert{border-color:var(--gold);color:var(--gold)}
+
+  /* ---------- TABS ---------- */
+  nav.tabs{position:sticky;top:0;z-index:30;background:rgba(237,239,242,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  .tabs-inner{max-width:1080px;margin:0 auto;display:flex;gap:2px;overflow-x:auto;padding:0 12px;scrollbar-width:none}
+  .tabs-inner::-webkit-scrollbar{display:none}
+  .tab{flex:0 0 auto;appearance:none;background:none;border:none;cursor:pointer;font-family:var(--mono);font-size:12.5px;font-weight:500;letter-spacing:.02em;color:var(--muted);padding:15px 14px;border-bottom:3px solid transparent;transition:color .15s,border-color .15s;white-space:nowrap}
+  .tab:hover{color:var(--ink)}
+  .tab[aria-selected="true"]{color:var(--red);border-bottom-color:var(--red);font-weight:600}
+  .tab .n{color:var(--faint);margin-right:6px}
+  .tab[aria-selected="true"] .n{color:var(--red)}
+  .tab:focus-visible{outline:2px solid var(--red);outline-offset:-4px;border-radius:4px}
+
+  /* ---------- PANELS ---------- */
+  main{padding:34px 0 70px}
+  .panel{display:none;animation:fade .35s ease}
+  .panel.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.panel,.panel.active{animation:none}}
+
+  .p-head{margin-bottom:22px}
+  .p-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--red);font-weight:600}
+  .p-title{font-family:var(--display);font-weight:900;font-size:clamp(26px,4.5vw,40px);letter-spacing:-.02em;line-height:1.02;margin:6px 0 8px}
+  .p-lead{color:var(--ink-soft);font-size:15.5px;max-width:70ch}
+
+  /* metric strip */
+  .strip{display:grid;grid-template-columns:1.1fr 1fr;gap:14px;margin:22px 0 8px}
+  @media(max-width:680px){.strip{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+  .card .lab{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:10px}
+  .big{font-family:var(--display);font-weight:900;font-size:40px;line-height:1;letter-spacing:-.02em}
+  .big .u{font-size:14px;font-weight:600;color:var(--muted);font-family:var(--mono);margin-left:6px;letter-spacing:0}
+  .vol-note{font-size:12.5px;color:var(--muted);margin-top:7px}
+
+  /* sparkline */
+  .spark{display:flex;align-items:flex-end;gap:4px;height:64px;margin-top:6px}
+  .bar{flex:1;background:var(--line);border-radius:3px 3px 0 0;min-height:3px;position:relative;transition:background .2s}
+  .bar.peak{background:var(--red)}
+  .bar .d{position:absolute;bottom:-17px;left:50%;transform:translateX(-50%);font-family:var(--mono);font-size:8.5px;color:var(--faint)}
+  .spark-wrap{padding-bottom:18px}
+
+  /* sentiment bar */
+  .senti{display:flex;height:30px;border-radius:8px;overflow:hidden;margin-top:4px;border:1px solid var(--line)}
+  .seg{display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:600;color:#fff}
+  .seg.pos{background:var(--pos)} .seg.neg{background:var(--neg)} .seg.neu{background:var(--neu)}
+  .senti-leg{display:flex;gap:16px;margin-top:9px;flex-wrap:wrap}
+  .senti-leg span{font-family:var(--mono);font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .dot{width:9px;height:9px;border-radius:2px;display:inline-block}
+  .dot.pos{background:var(--pos)}.dot.neg{background:var(--neg)}.dot.neu{background:var(--neu)}
+
+  /* content blocks */
+  .block{margin-top:24px}
+  .block h3{font-family:var(--display);font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);margin:0 0 12px;padding-bottom:8px;border-bottom:2px solid var(--ink)}
+  .block h3 .tag{float:right;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.04em;text-transform:none;color:#fff;background:var(--red);padding:2px 8px;border-radius:999px;border:none}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:680px){.grid2{grid-template-columns:1fr}}
+  ul.clean{list-style:none;padding:0;margin:0}
+  ul.clean li{padding:8px 0 8px 20px;position:relative;font-size:14.5px;color:var(--ink-soft);border-bottom:1px solid var(--line-soft)}
+  ul.clean li:last-child{border-bottom:none}
+  ul.clean li:before{content:"";position:absolute;left:2px;top:15px;width:6px;height:6px;background:var(--red);border-radius:50%}
+  ul.clean li b{color:var(--ink);font-weight:600}
+  .lead-name{font-family:var(--mono);font-size:11px;color:var(--red);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+
+  .insight{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--red);border-radius:0 var(--r) var(--r) 0;padding:16px 18px}
+  .insight .it{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--red);font-weight:600;margin-bottom:7px}
+  .insight p{margin:0;font-size:14.5px;color:var(--ink-soft)}
+  .insight.peak{border-left-color:var(--gold)}
+  .insight.peak .it{color:#9a7400}
+  .insight.emg{border-left-color:var(--green)}
+  .insight.emg .it{color:var(--green)}
+
+  /* dados insuficientes */
+  .nodata{display:inline-flex;align-items:center;gap:8px;background:var(--neu-wash);border:1px dashed var(--faint);border-radius:8px;padding:8px 13px;font-family:var(--mono);font-size:12px;color:var(--muted);font-weight:500}
+  .nodata:before{content:"⚠";color:var(--gold);font-size:14px}
+
+  /* viral table */
+  .viral{display:flex;flex-direction:column;gap:12px}
+  .v-row{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;display:grid;grid-template-columns:34px 1fr;gap:14px;align-items:start}
+  .v-rank{font-family:var(--display);font-weight:900;font-size:24px;color:var(--red);line-height:1}
+  .v-body h4{margin:0 0 5px;font-size:16px;font-weight:600;font-family:var(--display)}
+  .v-body p{margin:0 0 9px;font-size:13.5px;color:var(--ink-soft)}
+  .v-tags{display:flex;flex-wrap:wrap;gap:6px}
+  .v-tag{font-family:var(--mono);font-size:10.5px;padding:3px 9px;border-radius:999px;background:var(--paper);border:1px solid var(--line);color:var(--muted)}
+  .v-tag b{color:var(--ink);font-weight:600}
+  .life{font-family:var(--mono);font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:999px}
+  .life.long{background:var(--pos-wash);color:var(--pos)}
+  .life.short{background:var(--neu-wash);color:var(--muted)}
+  .life.mid{background:#FEF3D6;color:#9a7400}
+
+  /* radar opportunity cards */
+  .opp{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin-bottom:14px;position:relative;overflow:hidden}
+  .opp:before{content:attr(data-n);position:absolute;top:-14px;right:6px;font-family:var(--display);font-weight:900;font-size:80px;color:var(--line-soft);z-index:0;line-height:1}
+  .opp>*{position:relative;z-index:1}
+  .opp h4{margin:0 0 4px;font-family:var(--display);font-weight:700;font-size:18px}
+  .opp .why{font-size:13.5px;color:var(--ink-soft);margin:0 0 14px;max-width:64ch}
+  .opp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  @media(max-width:680px){.opp-grid{grid-template-columns:1fr}}
+  .opp-cell .ol{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:3px}
+  .opp-cell .ov{font-size:13.5px;color:var(--ink);font-weight:500}
+
+  .note{font-size:12.5px;color:var(--muted);font-family:var(--mono);line-height:1.6}
+  .src-flag{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;padding:2px 7px;border-radius:5px;margin-right:6px}
+  .src-flag.measured{background:var(--ink);color:#fff}
+  .src-flag.read{background:var(--red-wash);color:var(--red-deep)}
+
+  footer{border-top:1px solid var(--line);padding:26px 0 50px;color:var(--muted)}
+  footer .wrap{font-family:var(--mono);font-size:11.5px;line-height:1.8}
+  .divider{height:1px;background:var(--line);margin:26px 0}
+  a{color:var(--red-deep)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="head-inner">
+    <div class="eyebrow">Radar de Tendências · Social Listening Semanal</div>
+    <h1>AMERICANAS S.A.<span class="sub">Tendências da semana · 16 a 26 de junho de 2026 (10 dias)</span></h1>
+    <div class="meta-row">
+      <span class="chip">FONTE: <b>Buzzmonitor Trends</b> (mídia espontânea)</span>
+      <span class="chip">CONVERSA DA MARCA: <b>5.243 menções</b></span>
+      <span class="chip">SENTIMENTO MARCA: <b>53% +</b> / 27% − / 20% ~</span>
+      <span class="chip alert">REDE PREDOMINANTE: X/Twitter</span>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs" role="tablist" aria-label="Seções do dashboard">
+  <button class="tab" role="tab" aria-selected="true" data-p="geral"><span class="n">00</span>Visão Geral</button>
+  <button class="tab" role="tab" aria-selected="false" data-p="esportes"><span class="n">01</span>Esportes</button>
+  <button class="tab" role="tab" aria-selected="false" data-p="entret"><span class="n">02</span>Entretenimento</button>
+  <button class="tab" role="tab" aria-selected="false" data-p="cuidados"><span class="n">03</span>Cuidados Pessoais</button>
+  <button class="tab" role="tab" aria-selected="false" data-p="virais"><span class="n">04</span>Virais</button>
+  <button class="tab" role="tab" aria-selected="false" data-p="radar"><span class="n">05</span>Radar de Conteúdo</button>
+  <button class="tab" role="tab" aria-selected="false" data-p="ecom"><span class="n">06</span>E-commerce &amp; Copa</button>
+</nav>
+
+<main>
+<div class="wrap">
+
+  <!-- ============ VISÃO GERAL ============ -->
+  <section class="panel active" id="geral" role="tabpanel">
+    <div class="p-head">
+      <div class="p-kicker">Como ler este painel</div>
+      <h1 class="p-title" style="font-size:clamp(24px,4vw,34px)">Dois motores movem a conversa</h1>
+      <p class="p-lead">No período, falar de Americanas significou falar de duas coisas quase opostas: a <b>campanha de Copa do Mundo</b> (#TorcidaaaçaAmericanas — afeto, cestinha, ofertas, fortemente positiva) e a <b>2ª fase da Operação Disclosure</b>, a fraude contábil de R$ 54 bi (PF, Lemann, Sicupira, bancos — fortemente negativa, estourou em 25/06).</p>
+    </div>
+
+    <div class="strip">
+      <div class="card">
+        <div class="lab">Volume diário · conversa da marca</div>
+        <div class="spark-wrap"><div class="spark" data-series="brand"></div></div>
+        <div class="vol-note">Pico em <b>23/06</b> (campanha + jogos do Brasil) e novo salto em <b>25/06</b> (deflagração da operação da PF).</div>
+      </div>
+      <div class="card">
+        <div class="lab">Sentimento · conversa da marca</div>
+        <div class="senti" data-senti="brand"></div>
+        <div class="senti-leg">
+          <span><i class="dot pos"></i>Positivo 53,2%</span>
+          <span><i class="dot neg"></i>Negativo 26,5%</span>
+          <span><i class="dot neu"></i>Neutro 20,3%</span>
+        </div>
+        <div class="vol-note">O positivo vem da campanha de Copa e do afeto/nostalgia pela loja; o negativo, da fraude e dos controladores.</div>
+      </div>
+    </div>
+
+    <div class="block">
+      <h3>Escopo e transparência do método</h3>
+      <ul class="clean">
+        <li><b>Fonte:</b> Buzzmonitor Trends — mídia espontânea/earned media. Termo booleano aprovado para isolar a varejista (handles, "Lojas Americanas", #americanas e contexto de compra), evitando o adjetivo "americanas".</li>
+        <li><b>Censo via aggregations:</b> as contagens de volume e sentimento cobrem todos os posts retornados (5.243 menções na marca; 3.977 duplicados/RT consolidados). A leitura de temas vem da amostra dos posts mais engajados.</li>
+        <li><b>Caminho B (marca + categorias):</b> além da marca, coletei os trends de categoria do Brasil para alimentar o Radar e a seção de Copa — <b>Copa do Mundo/consumo: 44.285</b> · <b>GTA VI: 28.793</b> · <b>Cuidados pessoais: 2.055</b> menções.</li>
+        <li><b>Limitação a sinalizar:</b> nesta janela o Trends retornou conversa <b>majoritariamente em X/Twitter</b>. Leia volumes e sentimento sob essa ótica — Instagram/Facebook/TikTok não estão refletidos aqui.</li>
+        <li>Onde a categoria não tem lastro suficiente <i>dentro da conversa da marca</i>, o painel marca <span class="nodata">dados insuficientes</span> em vez de especular.</li>
+      </ul>
+    </div>
+
+    <div class="block">
+      <h3>Marcação de origem</h3>
+      <p class="note"><span class="src-flag measured">MEDIDO</span> número/contagem que sai direto das aggregations do Buzzmonitor. &nbsp; <span class="src-flag read">LEITURA</span> interpretação minha a partir do conteúdo dos posts (não é uma métrica). Fatos sobre fraude, queda de ações, Copa e lançamentos citados aqui foram <b>lidos na conversa pública</b>, não verificados de forma independente.</p>
+    </div>
+  </section>
+
+  <!-- ============ 1 ESPORTES ============ -->
+  <section class="panel" id="esportes" role="tabpanel">
+    <div class="p-head">
+      <div class="p-kicker">01 · Esportes</div>
+      <h1 class="p-title">A semana foi a Copa do Mundo</h1>
+      <p class="p-lead">Categoria dominante do período — tanto no Brasil quanto na própria marca, via campanha de Copa. A Copa do Mundo FIFA 2026 (EUA/Canadá/México, 48 seleções) está em andamento e pauta quase todo o esporte.</p>
+    </div>
+
+    <div class="strip">
+      <div class="card">
+        <div class="lab">Volume · trend "Copa + consumo"</div>
+        <div class="big">44.285<span class="u">menções</span></div>
+        <div class="spark-wrap" style="margin-top:14px"><div class="spark" data-series="copa"></div></div>
+        <div class="vol-note"><span class="src-flag measured">MEDIDO</span> Pico em <b>22/06</b> (rodada com Messi marcando 5 gols, Bélgica eliminada, França×Iraque suspensa por tempestade).</div>
+      </div>
+      <div class="card">
+        <div class="lab">Sentimento · trend de Copa</div>
+        <div class="senti" data-senti="copa"></div>
+        <div class="senti-leg">
+          <span><i class="dot pos"></i>Positivo 61,6%</span>
+          <span><i class="dot neg"></i>Negativo 18,9%</span>
+          <span><i class="dot neu"></i>Neutro 19,5%</span>
+        </div>
+        <div class="vol-note"><span class="src-flag read">LEITURA</span> Negativo concentrado em ceticismo com Neymar e críticas à CBF (jogos do Brasileirão em meio à Copa).</div>
+      </div>
+    </div>
+
+    <div class="block">
+      <h3>Assuntos, times, atletas e competições em destaque <span class="tag">Copa FIFA 2026</span></h3>
+      <div class="grid2">
+        <ul class="clean">
+          <li><b>Seleção Brasileira:</b> vitórias (Escócia 0×3, Brasil×Haiti), retorno de <b>Neymar</b>, técnico Ancelotti, estreia de Endrick e a esperança do "hexa".</li>
+          <li><b>Messi</b> — atleta viral global da semana: 5 gols em 2 jogos, virou o maior artilheiro da história das Copas (18 gols, superou Klose). Reacendeu o debate <b>Messi × Pelé</b>.</li>
+          <li><b>Mbappé e Haaland</b>: dois gols cada na mesma rodada — "grande dia de Copa".</li>
+        </ul>
+        <ul class="clean">
+          <li><b>Guerra de transmissão:</b> CazéTV × Globo × SBT × Disney+/ESPN — pico de <b>51,3 mi</b> citado na CazéTV; GE TV criticada por não ter jogos exclusivos.</li>
+          <li><b>Elo direto com a marca:</b> <span class="lead-name">Fred Luz</span>, novo CEO da Vasco SAF, é ex-diretor comercial das Lojas Americanas — citado na conversa esportiva.</li>
+          <li><b>Outros:</b> boxe (Seleção fatura 4 medalhas na Copa de Guiyang), apostas (Superbet/Betano/bet365), Série B que "não parou pra Copa".</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="grid2 block">
+      <div class="insight peak"><div class="it">Pico de engajamento</div><p><b>22 a 24/06.</b> A combinação "rodada de craques (Messi) + jogos do Brasil + campanha #TorcidaaaçaAmericanas" levou a marca ao seu maior dia de volume (23/06).</p></div>
+      <div class="insight emg"><div class="it">Tendência emergente</div><p>O debate <b>Messi × Pelé</b> e a narrativa do <b>"hexa"</b> aceleram conforme o Brasil avança. <b>Figurinhas/álbum Panini</b> em alta acelerada — cupons agressivos e escassez de cromos.</p></div>
+    </div>
+
+    <div class="block">
+      <h3>Esporte ligado especificamente à Americanas</h3>
+      <p style="font-size:14px;color:var(--ink-soft);margin:0 0 12px">Fora da campanha de Copa e da menção ao executivo Fred Luz, a associação espontânea entre a marca e atletas/clubes/competições é rasa no orgânico:</p>
+      <span class="nodata">dados insuficientes para ranking de atletas/clubes próprios da marca</span>
+    </div>
+  </section>
+
+  <!-- ============ 2 ENTRETENIMENTO ============ -->
+  <section class="panel" id="entret" role="tabpanel">
+    <div class="p-head">
+      <div class="p-kicker">02 · Entretenimento — TV, Games e Cinema</div>
+      <h1 class="p-title">Games puxam tudo: GTA VI</h1>
+      <p class="p-lead">A subcategoria de games domina com folga, impulsionada pela abertura da pré-venda de GTA VI. TV gira em torno da fragmentação de transmissão da Copa. Cinema aparece pouco e disperso.</p>
+    </div>
+
+    <div class="strip">
+      <div class="card">
+        <div class="lab">Games · volume GTA VI</div>
+        <div class="big">28.793<span class="u">menções</span></div>
+        <div class="spark-wrap" style="margin-top:14px"><div class="spark" data-series="gta"></div></div>
+        <div class="vol-note"><span class="src-flag measured">MEDIDO</span> Picos em <b>21/06</b> (vazamento de preços da FNAC Portugal) e <b>25/06</b> (abertura oficial da pré-venda).</div>
+      </div>
+      <div class="card">
+        <div class="lab">Sentimento · GTA VI</div>
+        <div class="senti" data-senti="gta"></div>
+        <div class="senti-leg">
+          <span><i class="dot pos"></i>Positivo 60%</span>
+          <span><i class="dot neg"></i>Negativo 22%</span>
+          <span><i class="dot neu"></i>Neutro 18%</span>
+        </div>
+        <div class="vol-note"><span class="src-flag read">LEITURA</span> Hype alto; fricção em preço (edições de R$ 500 a R$ 1.300), debate sobre gráficos e 60 FPS.</div>
+      </div>
+    </div>
+
+    <div class="block">
+      <h3>Volume por subcategoria</h3>
+      <div class="grid2">
+        <ul class="clean">
+          <li><b>Games — ALTÍSSIMO.</b> GTA VI (Rockstar): pré-venda aberta em 25/06, lançamento previsto para ~19/11/2026. Vetor de varejo claro: gift cards (PlayStation/Xbox), consoles, cupons (Mercado Livre "MIAMI6", KaBuM, cashback Banco Inter/Xbox). Também: Sonic Frontiers, nostalgia do totem Nintendo nas Americanas.</li>
+          <li><b>TV — MÉDIO.</b> Quase tudo é Copa: onde assistir (CazéTV/Globo/SBT/Disney+/Paramount+), "antena digital +250%" de vendas, Caldeirão do Huck (nostalgia), relato de racismo de repórter da Globo nos EUA.</li>
+        </ul>
+        <ul class="clean">
+          <li><b>Cinema — BAIXO.</b> Colab <b>Toy Story</b> da Americanas, crítica nostálgica de "O Último Golpe" (1974) e o ritual de "comprar guloseimas pra assistir filme".</li>
+          <li><b>Nostalgia musical (transversal):</b> forte saudade de comprar <b>CD/DVD nas Americanas</b> — Demi Lovato, Christina Aguilera (Burlesque), Britney, Madonna. Afeto positivo recorrente pela marca.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="grid2 block">
+      <div class="insight peak"><div class="it">Pico de engajamento</div><p><b>Games, 21 e 25/06.</b> O vazamento de preços (FNAC Portugal) e a abertura da pré-venda criaram dois picos. TV teve pico junto da rodada de 22/06.</p></div>
+      <div class="insight emg"><div class="it">Tendência emergente</div><p><b>GTA VI</b>, disparado. Pré-venda recém-aberta, escalando rumo ao lançamento — janela longa de oportunidade para gift cards, consoles e acessórios.</p></div>
+    </div>
+
+    <div class="block">
+      <h3>Cinema como categoria própria</h3>
+      <span class="nodata">dados insuficientes para tendência de cinema (volume e variedade baixos no período)</span>
+    </div>
+  </section>
+
+  <!-- ============ 3 CUIDADOS PESSOAIS ============ -->
+  <section class="panel" id="cuidados" role="tabpanel">
+    <div class="p-head">
+      <div class="p-kicker">03 · Cuidados Pessoais</div>
+      <h1 class="p-title">Skincare em pauta — e em polêmica</h1>
+      <p class="p-lead">Volume médio, mas conversa rica. Dois movimentos convivem: um viral cultural Brasil×Coreia sobre pele/maquiagem e a ascensão do <b>skincare minimalista</b> com dermocosmético acessível.</p>
+    </div>
+
+    <div class="strip">
+      <div class="card">
+        <div class="lab">Volume · trend de beleza/autocuidado</div>
+        <div class="big">2.055<span class="u">menções</span></div>
+        <div class="spark-wrap" style="margin-top:14px"><div class="spark" data-series="cuid"></div></div>
+        <div class="vol-note"><span class="src-flag measured">MEDIDO</span> Pico em <b>23/06</b> (377) — auge do bate-boca Brasil×Coreia sobre tom de pele e protetor solar.</div>
+      </div>
+      <div class="card">
+        <div class="lab">Sentimento · trend de beleza</div>
+        <div class="senti" data-senti="cuid"></div>
+        <div class="senti-leg">
+          <span><i class="dot pos"></i>Positivo 66,3%</span>
+          <span><i class="dot neg"></i>Negativo 24,1%</span>
+          <span><i class="dot neu"></i>Neutro 9,6%</span>
+        </div>
+        <div class="vol-note"><span class="src-flag read">LEITURA</span> Positivo nas resenhas de produto; negativo no viral racial/cultural e em extravio de compras (Amazon/Natura).</div>
+      </div>
+    </div>
+
+    <div class="block">
+      <h3>Produtos, marcas, rotinas e ingredientes mais comentados <span class="tag">resenha real</span></h3>
+      <div class="grid2">
+        <ul class="clean">
+          <li><b>Marca breakout:</b> <span class="lead-name">Principia</span> — gel de limpeza, protetor solar FPS 60, retinol, sérum, vitamina C. Dermocosmético nacional, acessível e muito recomendado.</li>
+          <li><b>Dermocosméticos:</b> La Roche-Posay, Vichy, Avène, Bioderma, Caudalie (Vinoperfect), Bioré (protetor p/ pele oleosa).</li>
+          <li><b>Hacks virais:</b> Bepantol/Cicaplast como primer de maquiagem; Vaselina/Vasenol fixando perfume.</li>
+        </ul>
+        <ul class="clean">
+          <li><b>Perfumaria:</b> Natura, Boticário (Malbec X), Granado (Vintage), Cuide-se Bem; "dupes" de perfume vindos do TikTok Shop.</li>
+          <li><b>Ingredientes em alta:</b> protetor solar (central), ácido hialurônico, retinol, vitamina C, niacinamida.</li>
+          <li><b>Autocuidado masculino:</b> rotina de skincare entrando no repertório (campanhas com Nick Jonas/Schick, fala de Carlos Sainz).</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="grid2 block">
+      <div class="insight peak"><div class="it">Pico de engajamento</div><p><b>23/06.</b> O viral Brasil×Coreia (sobre maquiagem, "pele natural" e protetor solar/clareamento) puxou o volume — conversa de alta carga, parte dela com tom racial.</p></div>
+      <div class="insight emg"><div class="it">Tendência emergente</div><p><b>Skincare minimalista:</b> "menos passos, pele melhor", com produtos baratos (gel de limpeza + hidratante + protetor 70+). A marca Principia é o símbolo desse movimento.</p></div>
+    </div>
+
+    <div class="block">
+      <h3>Cuidados pessoais ligados à Americanas</h3>
+      <p style="font-size:14px;color:var(--ink-soft);margin:0 0 12px">Dentro da conversa da marca, a categoria aparece só em menções pontuais de produto (creme Nivea, multipack Rexona das figurinhas, kit shampoo, absorventes). A associação espontânea beleza↔Americanas é baixa:</p>
+      <span class="nodata">dados insuficientes para ranking de beleza próprio da marca — categoria existe no Brasil, mas pouco colada à Americanas no orgânico</span>
+    </div>
+  </section>
+
+  <!-- ============ 4 VIRAIS ============ -->
+  <section class="panel" id="virais" role="tabpanel">
+    <div class="p-head">
+      <div class="p-kicker">04 · Assuntos Virais da Semana</div>
+      <h1 class="p-title">Top 5 picos de volume</h1>
+      <p class="p-lead">Ordenados pela intensidade do pico no período. Classificação de potencial é <span class="src-flag read">LEITURA</span> — projeção a partir da natureza do assunto.</p>
+    </div>
+
+    <div class="viral">
+      <div class="v-row">
+        <div class="v-rank">1</div>
+        <div class="v-body">
+          <h4>Operação Disclosure 2ª fase — fraude de R$ 54 bi</h4>
+          <p>PF e MPF deflagram nova fase contra a fraude contábil das Lojas Americanas; Justiça bloqueia até R$ 54 bi de Lemann, Sicupira e executivos de Itaú/Bradesco/Santander. Dominou o sentimento negativo da marca.</p>
+          <div class="v-tags">
+            <span class="v-tag">Origem: <b>PF/MPF, 25/06</b></span>
+            <span class="v-tag">Volume: <b>pico da marca em 23–25/06</b></span>
+            <span class="v-tag">Janela: <b>25/06, ainda repercutindo</b></span>
+            <span class="life long">Vida longa</span>
+          </div>
+        </div>
+      </div>
+      <div class="v-row">
+        <div class="v-rank">2</div>
+        <div class="v-body">
+          <h4>Messi, maior artilheiro da história das Copas</h4>
+          <p>5 gols em 2 jogos, ultrapassou Klose (18 gols) e reacendeu o debate Messi×Pelé. Maior assunto esportivo global da semana no recorte brasileiro.</p>
+          <div class="v-tags">
+            <span class="v-tag">Origem: <b>rodada de 22/06</b></span>
+            <span class="v-tag">Volume: <b>dentro das 44.285 de Copa</b></span>
+            <span class="v-tag">Janela: <b>22/06 em diante</b></span>
+            <span class="life long">Vida longa (durante a Copa)</span>
+          </div>
+        </div>
+      </div>
+      <div class="v-row">
+        <div class="v-rank">3</div>
+        <div class="v-body">
+          <h4>GTA VI — pré-venda e vazamento de preços</h4>
+          <p>Preços vazados pela FNAC Portugal e abertura oficial da pré-venda em 25/06. Varejo brasileiro (KaBuM, Mercado Livre, Banco Inter/Xbox) já surfa com gift cards e cupons.</p>
+          <div class="v-tags">
+            <span class="v-tag">Origem: <b>FNAC 21/06 + pré-venda 25/06</b></span>
+            <span class="v-tag">Volume: <b>28.793</b></span>
+            <span class="v-tag">Janela: <b>21–25/06 (picos)</b></span>
+            <span class="life long">Vida longa (até nov/26)</span>
+          </div>
+        </div>
+      </div>
+      <div class="v-row">
+        <div class="v-rank">4</div>
+        <div class="v-body">
+          <h4>#TorcidaaaçaAmericanas — campanha de Copa</h4>
+          <p>Kits, cestinhas, achadinhos, oferta-relâmpago de KitKat e cupom "VAR25" em dia de jogo. Principal motor do sentimento positivo da marca e do pico de 23/06.</p>
+          <div class="v-tags">
+            <span class="v-tag">Origem: <b>marca, 22–24/06</b></span>
+            <span class="v-tag">Volume: <b>maior parte do + da marca</b></span>
+            <span class="v-tag">Janela: <b>dias de jogo do Brasil</b></span>
+            <span class="life mid">Passageira / recorrente</span>
+          </div>
+        </div>
+      </div>
+      <div class="v-row">
+        <div class="v-rank">5</div>
+        <div class="v-body">
+          <h4>Viral Brasil × Coreia (skincare / tom de pele)</h4>
+          <p>Bate-boca cultural sobre maquiagem, "pele natural" e uso de protetor solar/clareamento. Alta carga, parte com tom racial. Pico de 377 menções em 23/06 no trend de beleza.</p>
+          <div class="v-tags">
+            <span class="v-tag">Origem: <b>22–23/06</b></span>
+            <span class="v-tag">Volume: <b>pico 377 em 23/06</b></span>
+            <span class="v-tag">Janela: <b>22–24/06</b></span>
+            <span class="life short">Passageira</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="insight"><div class="it">Bônus de contexto</div><p><span class="src-flag read">LEITURA</span> Tema financeiro recorrente: ações de varejistas (AMER3, MGLU3, BHIA3) caindo até <b>99%</b> das máximas, citadas junto da fraude — pauta de vida média, ligada ao noticiário econômico e ao ano eleitoral.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ 5 RADAR DE CONTEÚDO ============ -->
+  <section class="panel" id="radar" role="tabpanel">
+    <div class="p-head">
+      <div class="p-kicker">05 · Radar de Trends para Conteúdo</div>
+      <h1 class="p-title">5 ondas para surfar nos próximos 7 dias</h1>
+      <p class="p-lead">Oportunidades acionáveis a partir dos dados acima. <b>Regra de ouro do período:</b> a marca tem afeto positivo forte (Copa, nostalgia) e uma crise reputacional viva (fraude/controladores) — todo conteúdo deve apoiar nos motores positivos e <b>não</b> tangenciar a pauta dos donos/fraude.</p>
+    </div>
+
+    <div class="opp" data-n="1">
+      <h4>Dia de jogo do Brasil na Copa</h4>
+      <p class="why">A própria #TorcidaaaçaAmericanas já performa e é o maior gerador de sentimento positivo. No mata-mata, cada jogo é um evento de varejo (petiscos, bebidas, decoração).</p>
+      <div class="opp-grid">
+        <div class="opp-cell"><div class="ol">Janela ideal</div><div class="ov">Véspera + dia de cada jogo do Brasil</div></div>
+        <div class="opp-cell"><div class="ol">Tom</div><div class="ov">Torcida, celebração leve, "puro suco de Brasil"</div></div>
+        <div class="opp-cell"><div class="ol">Formato</div><div class="ov">Reels "monte sua cestinha do jogo" + cupom relâmpago + meme de reação ao gol</div></div>
+      </div>
+    </div>
+
+    <div class="opp" data-n="2">
+      <h4>GTA VI — gift cards e consoles</h4>
+      <p class="why">Pré-venda recém-aberta, hype crescente até o lançamento. Concorrentes (Mercado Livre, KaBuM, Banco Inter) já estão dentro. Vetor de ticket alto em eletrônicos/games.</p>
+      <div class="opp-grid">
+        <div class="opp-cell"><div class="ol">Janela ideal</div><div class="ov">Agora — primeiros dias de pré-venda</div></div>
+        <div class="opp-cell"><div class="ol">Tom</div><div class="ov">Gamer, bem-humorado, sem forçar a marca</div></div>
+        <div class="opp-cell"><div class="ol">Formato</div><div class="ov">Carrossel "garanta seu gift card/console" + reels de contagem regressiva</div></div>
+      </div>
+    </div>
+
+    <div class="opp" data-n="3">
+      <h4>Figurinhas e álbum da Copa (Panini)</h4>
+      <p class="why">Em alta acelerada, com escassez de cromos e cupons agressivos. Modelo de cashback em figurinhas (citado pelo Galo Na Veia) é replicável e gera recorrência.</p>
+      <div class="opp-grid">
+        <div class="opp-cell"><div class="ol">Janela ideal</div><div class="ov">Enquanto durar a Copa</div></div>
+        <div class="opp-cell"><div class="ol">Tom</div><div class="ov">Nostálgico-família ("trocar figurinha com o filho")</div></div>
+        <div class="opp-cell"><div class="ol">Formato</div><div class="ov">Reels "completar o álbum" + cashback em figurinhas + meme "faltam as difíceis"</div></div>
+      </div>
+    </div>
+
+    <div class="opp" data-n="4">
+      <h4>Skincare minimalista / dermocosmético acessível</h4>
+      <p class="why">Movimento "menos passos, pele melhor" em ascensão, com produtos baratos. Americanas tem categoria de beleza e pode entrar pelo viés do acessível — sem se meter no viral racial.</p>
+      <div class="opp-grid">
+        <div class="opp-cell"><div class="ol">Janela ideal</div><div class="ov">Próximos 7 dias (debate aquecido)</div></div>
+        <div class="opp-cell"><div class="ol">Tom</div><div class="ov">Prático, anti-hype, educativo</div></div>
+        <div class="opp-cell"><div class="ol">Formato</div><div class="ov">Carrossel "rotina de 3 passos" + lista de protetor/gel/hidratante acessíveis</div></div>
+      </div>
+    </div>
+
+    <div class="opp" data-n="5">
+      <h4>Nostalgia Americanas (CD/DVD, doces, totem Nintendo)</h4>
+      <p class="why">Vários posts orgânicos saudosistas geram afeto puro pela loja. É o ativo emocional mais valioso para contrabalançar a pauta negativa dos controladores — fala da "loja", não da "empresa".</p>
+      <div class="opp-grid">
+        <div class="opp-cell"><div class="ol">Janela ideal</div><div class="ov">Evergreen — alta agora</div></div>
+        <div class="opp-cell"><div class="ol">Tom</div><div class="ov">Afetivo, memória, throwback</div></div>
+        <div class="opp-cell"><div class="ol">Formato</div><div class="ov">Meme/throwback "quem lembra da seção de doces/CD" + UGC</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 6 E-COMMERCE & COPA ============ -->
+  <section class="panel" id="ecom" role="tabpanel">
+    <div class="p-head">
+      <div class="p-kicker">06 · Seção extra — E-commerce brasileiro &amp; Copa do Mundo</div>
+      <h1 class="p-title">Como o brasileiro está consumindo a Copa</h1>
+      <p class="p-lead">Síntese do que apareceu na conversa pública (<span class="src-flag read">LEITURA</span>) cruzada com o contexto de mercado. Os números de categoria são <span class="src-flag measured">MEDIDOS</span>; recomendações são análise.</p>
+    </div>
+
+    <div class="block">
+      <h3>O que move o consumo na Copa</h3>
+      <ul class="clean">
+        <li><b>Figurinhas e álbum Panini explodindo:</b> pacotinhos a R$ 4–5 e álbum capa dura a partir de R$ 35, com cupons agressivos em <b>Magalu, Mercado Livre e Shopee</b>. Compra recorrente, emocional e familiar.</li>
+        <li><b>Camisas "tailandesas" (réplicas 1:1)</b> por menos de R$ 100 dominando Shopee/Mercado Livre — concorrência informal direta para a camisa oficial. Decisão de compra por preço + frete + personalização.</li>
+        <li><b>Eletrônicos puxados pela transmissão fragmentada:</b> "antena digital +250%" de vendas (dado citado de Shopee/Amazon), porque o torcedor não sabe "onde vai passar o jogo" (CazéTV/Globo/SBT/Disney+/Paramount+). Abre espaço para TV, antena e gift cards de streaming.</li>
+        <li><b>Consumo de "assistir em casa":</b> petiscos, bebidas, chocolate, decoração — exatamente o que a cestinha #TorcidaaaçaAmericanas capturou.</li>
+      </ul>
+    </div>
+
+    <div class="block">
+      <h3>Comportamento do consumidor brasileiro <span class="tag">leitura do orgânico</span></h3>
+      <div class="grid2">
+        <ul class="clean">
+          <li><b>Compra no app + retira na loja:</b> citado espontaneamente como hábito ("comprar no app da Americanas/Magalu e retirar na loja").</li>
+          <li><b>Caça ao menor preço:</b> réplicas, cupons e "dupes" lideram a conversa de compra — sensibilidade a preço muito alta.</li>
+          <li><b>Consumo afetivo:</b> "comprar felicidade na Ame", nostalgia da loja — vínculo emocional forte, separado da imagem dos controladores.</li>
+        </ul>
+        <ul class="clean">
+          <li><b>Engajamento com marca que "entra na trend":</b> a campanha de Copa rendeu volume de interações altíssimo — o consumidor recompensa a marca que torce junto.</li>
+          <li><b>Marketplaces dominam a oferta-relâmpago no orgânico</b> (Shopee/ML/Magalu citados com cupons); Americanas aparece mais via campanha própria do que como destino de promoção.</li>
+          <li><b>Cenário macro pesado:</b> ações de varejistas caindo até 99% das máximas; juros altos e crédito caro citados como freio do consumo.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="block">
+      <h3>Oportunidades para o e-commerce na Copa</h3>
+      <ul class="clean">
+        <li><b>Cupom relâmpago em dia de jogo</b> (modelo "VAR25" já usado) — atrela conversão ao calendário emocional da Seleção.</li>
+        <li><b>Kits temáticos de "dia de jogo"</b> (cestinha de petiscos + bebida + decoração) com curadoria e frete rápido.</li>
+        <li><b>Figurinhas + cashback</b> como gancho de recorrência e tráfego à loja física/app.</li>
+        <li><b>Eletrônicos da transmissão:</b> bundle de TV + antena digital + gift card de streaming, surfando o "onde vai passar o jogo".</li>
+        <li><b>Camisa oficial competindo com a réplica</b> por preço, frete e retirada em loja no mesmo dia.</li>
+        <li><b>Cross com games:</b> gift cards e consoles na esteira do GTA VI, conectando dois picos de demanda.</li>
+      </ul>
+    </div>
+
+    <div class="block">
+      <div class="insight"><div class="it">Alerta de contexto — tributação</div><p><span class="src-flag read">LEITURA</span> Apareceu na conversa: o Instituto para Desenvolvimento do Varejo (que reúne Americanas, Casas Bahia, Renner, Magalu e outros) defende a cobrança da <b>CBS sobre importados de baixo valor a partir de 2027</b>, alegando isonomia frente a plataformas asiáticas. Pauta estrutural que pode redesenhar a competição com Shein/marketplaces.</p></div>
+    </div>
+
+    <div class="block">
+      <div class="insight emg"><div class="it">Recomendação central</div><p>Separe nitidamente <b>"a loja que o brasileiro ama"</b> (Copa, nostalgia, cestinha, achadinhos — afeto positivo medível) da <b>pauta dos controladores/fraude</b> (negativa e fora do controle de marketing). Concentre o conteúdo dos próximos 7 dias nos motores positivos e na operação/serviço — é onde está o ganho reputacional disponível.</p></div>
+    </div>
+  </section>
+
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    RADAR DE TENDÊNCIAS · AMERICANAS S.A. — gerado a partir do Buzzmonitor Trends (mídia espontânea).<br>
+    Janela: 16–26/06/2026 · Rede predominante na amostra: X/Twitter · Contagens = aggregations sobre todos os posts retornados · Leitura de temas = amostra dos posts mais engajados.<br>
+    "Dados insuficientes" sinaliza ausência de lastro no orgânico — não foi preenchido com suposição. Fatos de fraude, ações, Copa e lançamentos foram lidos na conversa pública, não verificados de forma independente.
+  </div>
+</footer>
+
+<script>
+  const SERIES = {
+    brand:{labels:["16","17","18","19","20","21","22","23","24","25","26"],values:[16,24,69,12,6,9,126,269,223,187,82]},
+    copa: {labels:["16","17","18","19","20","21","22","23","24","25","26"],values:[12,12,9,17,13,11,151,47,29,13,4]},
+    gta:  {labels:["16","17","18","19","20","21","22","23","24","25","26"],values:[0,1,3,0,0,10,12,3,4,10,2]},
+    cuid: {labels:["16","17","18","19","20","21","22","23","24","25","26"],values:[59,85,80,92,61,56,164,377,273,54,42]}
+  };
+  const SENTI = {
+    brand:{pos:53.2,neg:26.5,neu:20.3},
+    copa: {pos:61.6,neg:18.9,neu:19.5},
+    gta:  {pos:60.0,neg:22.0,neu:18.0},
+    cuid: {pos:66.3,neg:24.1,neu:9.6}
+  };
+
+  // build sparklines
+  document.querySelectorAll('.spark').forEach(el=>{
+    const s = SERIES[el.dataset.series]; if(!s) return;
+    const max = Math.max(...s.values);
+    s.values.forEach((v,i)=>{
+      const b=document.createElement('div');
+      b.className='bar'+(v===max?' peak':'');
+      b.style.height=(max? Math.max(3,(v/max)*100):3)+'%';
+      b.title=s.labels[i]+'/06 — '+v+' menções';
+      const d=document.createElement('span'); d.className='d'; d.textContent=s.labels[i];
+      b.appendChild(d); el.appendChild(b);
+    });
+  });
+
+  // build sentiment bars
+  document.querySelectorAll('.senti').forEach(el=>{
+    const s=SENTI[el.dataset.senti]; if(!s) return;
+    [['pos',s.pos],['neg',s.neg],['neu',s.neu]].forEach(([k,v])=>{
+      const seg=document.createElement('div');
+      seg.className='seg '+k; seg.style.width=v+'%';
+      seg.textContent = v>=12 ? Math.round(v)+'%' : '';
+      el.appendChild(seg);
+    });
+  });
+
+  // tabs
+  const tabs=[...document.querySelectorAll('.tab')];
+  const panels=[...document.querySelectorAll('.panel')];
+  function show(id){
+    tabs.forEach(t=>t.setAttribute('aria-selected', t.dataset.p===id));
+    panels.forEach(p=>p.classList.toggle('active', p.id===id));
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  tabs.forEach((t,i)=>{
+    t.addEventListener('click',()=>show(t.dataset.p));
+    t.addEventListener('keydown',e=>{
+      if(e.key==='ArrowRight'){e.preventDefault();tabs[(i+1)%tabs.length].focus();}
+      if(e.key==='ArrowLeft'){e.preventDefault();tabs[(i-1+tabs.length)%tabs.length].focus();}
+    });
+  });
+</script>
+</body>
+</html>
